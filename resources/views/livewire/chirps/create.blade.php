@@ -1,9 +1,21 @@
 <?php
 
+use Livewire\Attributes\Rule;
 use Livewire\Volt\Component;
 
 new class extends Component {
+    #[Rule('required|string|min:3|max:255')] // aquí se define la regla de validate() en livewire
+
     public $message = '';
+
+    public function store(): void
+    {
+        $validated = $this->validate();
+
+        auth()->user()->chirps()->create($validated);
+
+        $this->message = '';
+    }
 }; ?>
 
 <div>
