@@ -8,6 +8,8 @@ use Livewire\Attributes\On;
 new class extends Component {
     public Collection $chirps;
 
+    public ?Chirp $editing = null;
+
     public function mount(): void
     {
         /* $this->chirps = Chirp::with('user')
@@ -17,11 +19,25 @@ new class extends Component {
     }
 
     #[On('chirp-created')] // escuchar el evento enviado desde create de livewire
+    #[On('chirp-updated')]
     public function getChirps(): void
     {
+        $this->editing = null;
+
         $this->chirps = Chirp::with('user')
             ->latest()
             ->get();
+    }
+
+    public function edit(Chirp $chirp): void
+    {
+        $this->editing = $chirp;
+    }
+
+    #[On('chirp-canceled')]
+    public function cancelEdit(): void
+    {
+        $this->editing = null;
     }
 }; ?>
 
@@ -36,9 +52,33 @@ new class extends Component {
                     <div>
                         <span class="text-gray-800">{{ $chirp->user->name }}</span>
                         <small class="ml-2 text-sm text-gray-600">{{ $chirp->created_at->format('j M Y, g:i a') }}</small>
+                        @unless ($chirp->created_at->eq($chirp->updated_at))
+                            <small class="text-sm text-gray-500"> &middot; {{ __('edited') }}</small>
+                        @endunless
                     </div>
+                    @if ($chirp->user->is(auth()->user()))
+                        <x-dropdown>
+                            <x-slot name="trigger">
+                                <button>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+                            <x-slot name="content">
+                                <x-dropdown-link wire:click="edit({{ $chirp->id }})">
+                                    {{ __('Edit') }}
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>                        
+                    @endif
                 </div>
-                <p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p>
+                {{-- <p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p> --}}
+                @if ($chirp->is($editing)) 
+                    <livewire:chirps.edit :chirp="$chirp" :key="$chirp->id" />
+                @else
+                    <p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p>
+                @endif 
             </div>
         </div>
     @endforeach
